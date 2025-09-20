@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>電訪紀錄智慧產生器 (反向操作版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
+        .form-label { @apply block text-sm font-medium text-slate-700 mb-1.5; }
+        .form-input, .form-select { @apply w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg shadow-sm placeholder-slate-400 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-slate-400; }
+        .btn { @apply px-7 py-3 rounded-lg font-semibold text-white shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-50 transition-all duration-300 ease-in-out transform hover:scale-[1.03]; }
+        .btn-primary { @apply bg-blue-600 hover:bg-blue-700 focus:ring-blue-500; }
+        .btn-outline { @apply bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus:ring-blue-500; }
+        .section-title { @apply text-xl font-bold text-slate-800 border-b-2 border-slate-200 pb-4 mb-6 tracking-wide; }
+        .main-card { @apply bg-white rounded-3xl p-8 sm:p-10 relative transition-shadow duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.05)]; }
+        .quick-input-group { @apply flex items-center bg-slate-50 p-3 rounded-lg border border-slate-200; }
+        .quick-input-group select { @apply bg-slate-50 border-0 focus:ring-0 w-auto; }
+        .quick-input-group input { @apply bg-white; }
+        .hidden-section { display: none; }
+    </style>
+</head>
+<body class="bg-slate-50">
+
+    <div class="container mx-auto max-w-5xl p-4 sm:p-6 lg:p-8">
+        <div class="main-card">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">電訪紀錄智慧產生器</h1>
+                <p class="text-slate-500 mt-3 max-w-2xl mx-auto">請透過下方「快速紀錄」選單描述案主狀況，系統將自動生成摘要並回填完整報告。</p>
+            </div>
+
+            <div id="quickInputForm" class="space-y-12">
+                <!-- 基本資訊 -->
+                <section>
+                    <h2 class="section-title">壹、基本資訊</h2>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200/80 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+                        <!-- 案件號 -->
+                        <div>
+                            <label class="form-label font-semibold text-slate-800">案件號</label>
+                            <div class="grid grid-cols-2 gap-4 mt-1">
+                                <div>
+                                    <label for="assignmentDate" class="form-label text-sm font-normal">派案日</label>
+                                    <input type="date" id="assignmentDate" class="form-input">
+                                </div>
+                                <div>
+                                    <label for="caseNumber" class="form-label text-sm font-normal">編號</label>
+                                    <input type="text" id="caseNumber" class="form-input" placeholder="請輸入編號">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 確認時間 -->
+                        <div>
+                            <label class="form-label font-semibold text-slate-800">確認時間</label>
+                            <div class="grid grid-cols-2 gap-4 mt-1">
+                               <div>
+                                    <label for="confirmTime" class="form-label text-sm font-normal">日期</label>
+                                    <input type="date" id="confirmTime" class="form-input">
+                               </div>
+                               <div>
+                                    <label for="confirmTimeClock" class="form-label text-sm font-normal">時間</label>
+                                    <input type="text" id="confirmTimeClock" class="form-input" placeholder="例如: 14:30">
+                               </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 聯繫電話 -->
+                        <div class="md:col-span-2">
+                            <label for="contactPhone" class="form-label">聯繫電話</label>
+                            <input type="tel" id="contactPhone" class="form-input" placeholder="例如：0912-345-678">
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- 快速紀錄區 -->
+                <section>
+                    <h2 class="section-title">貳、快速紀錄</h2>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200/80 grid grid-cols-1 lg:grid-cols-2 gap-5">
+                        <div class="quick-input-group">
+                            <select id="livingCondition">
+                                <option value="案主與">案主與</option>
+                                <option value="案主獨居">案主獨居</option>
+                            </select>
+                            <input type="text" id="livingWith" class="form-input" placeholder="例如:兒子">
+                            <span class="px-2 text-slate-600">同住</span>
+                        </div>
+                        <div class="quick-input-group">
+                             <select id="selfCareStatus">
+                                <option value="生活自理無虞">生活自理無虞</option>
+                                <option value="需他人協助">需他人協助</option>
+                            </select>
+                            <div id="assistDetailContainer" class="w-full hidden-section">
+                                <select id="assistDetailText" class="form-input">
+                                    <option value="備餐、安全照顧、家務">備餐、安全照顧、家務</option>
+                                    <option value="盥洗、更衣、備餐、安全照顧、家務">盥洗、更衣、備餐、安全照顧、家務</option>
+                                    <option value="盥洗、更衣、備餐、如廁、安全照顧、家務">盥洗、更衣、備餐、如廁、安全照顧、家務</option>
+                                    <option value="除用餐皆須協助">除用餐皆須協助</option>
+                                    <option value="皆需協助">皆需協助</option>
+                                    <option value="custom">其他(自行填寫)</option>
+                                </select>
+                                <input type="text" id="assistDetailCustom" class="form-input hidden-section mt-2" placeholder="請輸入協助項目">
+                            </div>
+                        </div>
+                         <div class="quick-input-group">
+                             <select id="employmentSchoolStatus">
+                                <option value="" selected disabled>請選擇就業/就學狀況</option>
+                                <option value="就業中">就業中</option>
+                                <option value="無業">無業</option>
+                                <option value="就學中">就學中</option>
+                            </select>
+                            <div id="schoolDetailContainer" class="w-full hidden-section">
+                                <select id="schoolDetailSelect" class="form-input">
+                                    <option value="幼兒園">幼兒園</option>
+                                    <option value="小學一般班">小學一般班</option>
+                                    <option value="小學特教資源班">小學特教資源班</option>
+                                    <option value="國中一般班">國中一般班</option>
+                                    <option value="國中特教資源班">國中特教資源班</option>
+                                    <option value="高中">高中</option>
+                                    <option value="大學">大學</option>
+                                    <option value="custom">其他(自行填寫)</option>
+                                </select>
+                                <input type="text" id="schoolDetailCustom" class="form-input hidden-section mt-2" placeholder="請輸入就學狀況">
+                            </div>
+                        </div>
+                        <div class="quick-input-group">
+                            <select id="aidsStatus">
+                                <option value="移行無須輔具">移行無須輔具</option>
+                                <option value="移行須使用">移行須使用</option>
+                            </select>
+                            <input type="text" id="aidsDetailText" class="form-input" placeholder="例如:輪椅">
+                        </div>
+                         <div class="quick-input-group lg:col-span-2">
+                             <select id="nursingStatus">
+                                <option value="無護理需求">無護理需求</option>
+                                <option value="有護理需求">有護理需求</option>
+                            </select>
+                            <div id="nursingDetailContainer" class="flex flex-wrap gap-x-4 gap-y-2 pl-4 items-center flex-grow">
+                                <label class="flex items-center space-x-2 text-sm"><input type="checkbox" value="鼻胃管" class="nursing-checkbox rounded"><span>鼻胃管</span></label>
+                                <label class="flex items-center space-x-2 text-sm"><input type="checkbox" value="氣切" class="nursing-checkbox rounded"><span>氣切</span></label>
+                                <label class="flex items-center space-x-2 text-sm"><input type="checkbox" value="尿管" class="nursing-checkbox rounded"><span>尿管</span></label>
+                                <label class="flex items-center space-x-2 text-sm"><input type="checkbox" value="褥瘡" class="nursing-checkbox rounded"><span>褥瘡</span></label>
+                                <label class="flex items-center space-x-2 text-sm"><input type="checkbox" value="造廔口" class="nursing-checkbox rounded"><span>造廔口</span></label>
+                                <label class="flex items-center space-x-2 text-sm"><input type="checkbox" value="洗腎" class="nursing-checkbox rounded"><span>洗腎</span></label>
+                                <label class="flex items-center space-x-2 text-sm"><input type="checkbox" id="nursingOtherCheckbox" class="rounded"><span>其他</span></label>
+                                <input type="text" id="nursingDetailCustom" class="form-input hidden-section w-auto flex-grow h-10" placeholder="請輸入...">
+                            </div>
+                        </div>
+                        <div class="quick-input-group">
+                             <select id="ltcStatus">
+                                <option value="長照服務暫無需求">長照服務暫無需求</option>
+                                <option value="已使用長照服務">已使用長照服務</option>
+                            </select>
+                            <input type="text" id="ltcDetailText" class="form-input hidden-section" placeholder="例如:居家服務">
+                        </div>
+                        <div class="quick-input-group lg:col-span-2">
+                            <select id="supplementaryInfo">
+                                <option value="" selected disabled>請選擇補充事項</option>
+                                <option value="自行填寫">自行填寫</option>
+                                <option value="兩名身障者">家中有兩名以上身障者</option>
+                            </select>
+                            <input type="text" id="supplementaryText" class="form-input hidden-section" placeholder="請填寫...">
+                        </div>
+                        <!-- NEW Welfare Checkbox Section -->
+                        <div class="lg:col-span-2 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                            <label class="form-label font-semibold text-slate-800 mb-3">提供福利資訊</label>
+                            <div id="welfareCheckboxContainer" class="space-y-4 text-sm">
+                                <!-- Group 1 -->
+                                <div>
+                                    <p class="font-medium text-slate-600 mb-2">一、</p>
+                                    <div class="flex flex-wrap gap-x-6 gap-y-2">
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="身障停車位識別證"><span>身障停車位識別證</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="復康巴士"><span>復康巴士</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="必要陪伴者優惠措施"><span>必要陪伴者優惠措施</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="身障生活補助"><span>身障生活補助</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="身障房屋租金補貼"><span>身障房屋租金補貼</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="用電優惠"><span>用電優惠</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="就醫部分負擔減免"><span>就醫部分負擔減免</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="低收入戶、中低收入戶申請"><span>低收/中低收申請</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="發展遲緩兒童療育補助"><span>發展遲緩兒童療育補助</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="身障鑑定流程"><span>身障鑑定流程</span></label>
+                                    </div>
+                                </div>
+                                <!-- Group 2 -->
+                                <div>
+                                    <p class="font-medium text-slate-600 mb-2">二、長照服務的</p>
+                                    <div class="flex flex-wrap gap-x-6 gap-y-2">
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="居家服務"><span>居家服務</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="專業服務"><span>專業服務</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="喘息服務"><span>喘息服務</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="營養餐飲服務"><span>營養餐飲服務</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="日間照顧服務"><span>日間照顧服務</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="交通接送"><span>交通接送</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="居家無障礙環境改善"><span>居家無障礙環境改善</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="家庭托顧"><span>家庭托顧</span></label>
+                                    </div>
+                                </div>
+                                <!-- Group 3, 4, 5 -->
+                                <div>
+                                    <p class="font-medium text-slate-600 mb-2">三、其他服務</p>
+                                    <div class="flex flex-wrap gap-x-6 gap-y-2">
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="就業服務"><span>就業服務</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="輔具服務及補助流程"><span>輔具服務及補助流程</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="心理重建"><span>心理重建</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="課後照顧"><span>課後照顧</span></label>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-slate-600 mb-2">四、社區式/住宿式服務</p>
+                                    <div class="flex flex-wrap gap-x-6 gap-y-2">
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="自立生活支持服務"><span>自立生活支持服務</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="社區日間作業設施服務"><span>社區日間作業設施(小作所)</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="臨時及短期照顧服務"><span>臨時及短期照顧服務</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="住宿式照顧服務"><span>住宿式照顧服務</span></label>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-slate-600 mb-2">五、</p>
+                                    <div class="flex flex-wrap gap-x-6 gap-y-2 items-center">
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="外籍看護申請流程及方式"><span>外籍看護申請</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="防走失手鍊"><span>防走失手鍊</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="緊急救援系統"><span>緊急救援系統</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="身服中心"><span>身服中心</span></label>
+                                        <label class="flex items-center space-x-2"><input type="checkbox" id="welfareOtherCheckbox"><span>其他</span></label>
+                                        <input type="text" id="welfareOtherText" class="form-input hidden-section w-auto flex-grow h-10" placeholder="請輸入...">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="mt-16 flex flex-col sm:flex-row justify-center items-center gap-4">
+                <button id="clearBtn" class="btn btn-outline w-full sm:w-auto">清除重填</button>
+                <button id="generateBtn" class="btn btn-primary w-full sm:w-auto">產生報告</button>
+            </div>
+
+            <!-- 輸出區 -->
+            <div id="outputSection" class="mt-16 hidden-section">
+                <!-- 聯繫摘要輸出 -->
+                <div class="mb-12">
+                    <h2 class="section-title">拾壹、聯繫摘要</h2>
+                    <div class="mt-4 relative">
+                        <div id="summaryOutput" class="w-full bg-slate-50 p-6 rounded-lg border border-slate-200 min-h-[100px] text-slate-800 leading-relaxed tracking-wide"></div>
+                         <button class="copyBtn btn bg-slate-600 hover:bg-slate-700 absolute top-4 right-4 px-4 py-1.5 text-sm">複製</button>
+                    </div>
+                </div>
+                <!-- 勾選報告輸出 -->
+                <div>
+                    <h2 class="section-title">標準格式報告 (自動判讀生成)</h2>
+                    <div class="mt-4 relative">
+                        <pre id="checkboxReportOutput" class="w-full bg-slate-50 p-6 rounded-lg border border-slate-200 min-h-[200px] text-slate-800 leading-relaxed tracking-wide whitespace-pre-wrap font-sans"></pre>
+                        <button class="copyBtn btn bg-slate-600 hover:bg-slate-700 absolute top-4 right-4 px-4 py-1.5 text-sm">複製</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="absolute bottom-6 right-8 text-sm text-gray-400 font-mono">
+                v3.6 (邏輯修正版)
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const getEl = (id) => document.getElementById(id);
+
+        // --- 設定預設日期為今天 ---
+        const today = new Date();
+        const timezoneOffset = today.getTimezoneOffset() * 60000;
+        const localISOTime = (new Date(today - timezoneOffset)).toISOString().split('T')[0];
+        getEl('confirmTime').value = localISOTime;
+
+        // --- 動態顯示輸入框 ---
+        const setupConditionalInput = (selectId, elementToShowId, showValues) => {
+            const select = getEl(selectId);
+            const elementToShow = getEl(elementToShowId);
+            const showValueArray = Array.isArray(showValues) ? showValues : [showValues];
+            
+            const toggle = () => {
+                const shouldShow = showValueArray.includes(select.value);
+                elementToShow.classList.toggle('hidden-section', !shouldShow);
+            };
+
+            select.addEventListener('change', toggle);
+            toggle();
+        };
+        
+        setupConditionalInput('livingCondition', 'livingWith', '案主與');
+        setupConditionalInput('selfCareStatus', 'assistDetailContainer', '需他人協助');
+        setupConditionalInput('assistDetailText', 'assistDetailCustom', 'custom');
+        setupConditionalInput('employmentSchoolStatus', 'schoolDetailContainer', '就學中');
+        setupConditionalInput('schoolDetailSelect', 'schoolDetailCustom', 'custom');
+        setupConditionalInput('aidsStatus', 'aidsDetailText', '移行須使用');
+
+        const nursingSelect = getEl('nursingStatus');
+        const nursingDetailsContainer = getEl('nursingDetailContainer');
+        const toggleNursingDetails = () => {
+            nursingDetailsContainer.style.display = nursingSelect.value === '有護理需求' ? 'flex' : 'none';
+        };
+        nursingSelect.addEventListener('change', toggleNursingDetails);
+        toggleNursingDetails();
+
+        getEl('nursingOtherCheckbox').addEventListener('change', () => {
+             getEl('nursingDetailCustom').classList.toggle('hidden-section', !getEl('nursingOtherCheckbox').checked);
+        });
+
+        const ltcSelect = getEl('ltcStatus');
+        const ltcDetailInput = getEl('ltcDetailText');
+        const toggleLtcDetails = () => {
+            ltcDetailInput.classList.toggle('hidden-section', ltcSelect.value !== '已使用長照服務');
+        };
+        ltcSelect.addEventListener('change', toggleLtcDetails);
+        toggleLtcDetails();
+        
+        getEl('welfareOtherCheckbox').addEventListener('change', () => {
+            getEl('welfareOtherText').classList.toggle('hidden-section', !getEl('welfareOtherCheckbox').checked);
+        });
+
+        setupConditionalInput('supplementaryInfo', 'supplementaryText', ['自行填寫']);
+
+        // --- 主要按鈕事件 ---
+        getEl('generateBtn').addEventListener('click', () => {
+            const summaryText = generateSummary();
+            getEl('summaryOutput').textContent = summaryText;
+
+            const checkboxReportText = parseSummaryAndGenerateReport(summaryText);
+            getEl('checkboxReportOutput').textContent = checkboxReportText;
+            
+            const outputSection = getEl('outputSection');
+            outputSection.style.display = 'block';
+            outputSection.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        getEl('clearBtn').addEventListener('click', () => {
+            if (confirm('您確定要清除所有已填寫的欄位嗎？')) {
+                getEl('quickInputForm').querySelectorAll('input, select').forEach(el => {
+                    if (el.tagName === 'INPUT') {
+                        if(el.type === 'checkbox' || el.type === 'radio') {
+                            el.checked = false;
+                        } else {
+                            el.value = '';
+                        }
+                    }
+                    if (el.tagName === 'SELECT') {
+                       el.selectedIndex = 0;
+                    }
+                    el.dispatchEvent(new Event('change'));
+                });
+                getEl('confirmTime').value = localISOTime;
+                getEl('assignmentDate').value = '';
+                getEl('caseNumber').value = '';
+                getEl('outputSection').style.display = 'none';
+            }
+        });
+
+        // --- 產生聯繫摘要 ---
+        function generateSummary() {
+            let parts = [];
+            const getVal = (id) => getEl(id).value.trim();
+
+            let livingText = getVal('livingCondition');
+            parts.push(livingText === '案主與' ? `案主與${getVal('livingWith') || '家人'}同住` : '案主獨居');
+
+            let selfCareText = getVal('selfCareStatus');
+            if (selfCareText === '需他人協助') {
+                let details = getVal('assistDetailText');
+                if (details === 'custom') details = getVal('assistDetailCustom');
+                parts.push(details ? `生活上於${details}需他人協助` : '生活上需他人協助');
+            } else {
+                parts.push('生活自理無虞');
+            }
+
+            const employmentSchool = getVal('employmentSchoolStatus');
+            if (employmentSchool === '就業中' || employmentSchool === '無業') {
+                parts.push(`目前${employmentSchool}`);
+            } else if (employmentSchool === '就學中') {
+                let schoolDetails = getVal('schoolDetailSelect');
+                if (schoolDetails === 'custom') schoolDetails = getVal('schoolDetailCustom');
+                parts.push(schoolDetails ? `目前就學中(${schoolDetails})` : '目前就學中');
+            }
+            
+            let aidsText = getVal('aidsStatus');
+            parts.push(aidsText === '移行須使用' ? `移行須使用${getVal('aidsDetailText') || '輔具'}` : '移行無須輔具');
+            
+            let nursingStatus = getVal('nursingStatus');
+            if (nursingStatus === '有護理需求') {
+                const checkedNeeds = Array.from(document.querySelectorAll('.nursing-checkbox:checked')).map(cb => cb.value);
+                if (getEl('nursingOtherCheckbox').checked) {
+                    const customNeed = getVal('nursingDetailCustom');
+                    if (customNeed) checkedNeeds.push(customNeed);
+                }
+                if (checkedNeeds.length > 0) {
+                    parts.push(`有 ${checkedNeeds.join('、')} 等護理需求`);
+                }
+            }
+            
+            let ltcText = getVal('ltcStatus');
+            const ltcDetails = getVal('ltcDetailText');
+            parts.push(ltcText === '已使用長照服務' ? `已使用長照服務(${ltcDetails})` : '長照服務暫無需求');
+            
+            const supplementarySelect = getVal('supplementaryInfo');
+            const supplementaryText = getVal('supplementaryText');
+            if (supplementarySelect === '自行填寫' && supplementaryText) parts.push(`${supplementaryText}`);
+            if (supplementarySelect === '兩名身障者') parts.push('家中有兩名以上身障者');
+            
+            const welfareItems = Array.from(document.querySelectorAll('.welfare-checkbox:checked')).map(cb => cb.value);
+            if(getEl('welfareOtherCheckbox').checked){
+                const otherWelfare = getVal('welfareOtherText');
+                if(otherWelfare) welfareItems.push(otherWelfare);
+            }
+            if(welfareItems.length > 0){
+                parts.push(`本次通話另提供了關於 ${welfareItems.join('、')} 的福利資訊`);
+            }
+
+            return parts.filter(Boolean).join('，') + '。';
+        }
+
+        // --- 核心：解析摘要並產生報告 ---
+        function parseSummaryAndGenerateReport(summary) {
+            let report = [];
+            const getVal = (id) => document.getElementById(id).value.trim();
+
+            const confirmDate = getVal('confirmTime') ? new Date(getVal('confirmTime')).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '';
+            const confirmClock = getVal('confirmTimeClock');
+            report.push(`壹、確認時間：${confirmDate} ${confirmClock}`.trim());
+            report.push(`貳、聯繫電話：${getVal('contactPhone')}`);
+            report.push('參、生活狀況：');
+
+            const isIndependent = summary.includes('生活自理無虞');
+            report.push(`一、${isIndependent ? '■' : '□'}具生活自理能力`);
+            
+            const assistKeywords = ['盥洗','更衣','用餐','備餐','如廁','移位','室內移動','室外移動','安全照顧','家務'];
+            let assistChecks = '';
+            if (summary.includes('皆需協助')) {
+                assistChecks = assistKeywords.map(k => `□${k}`).join(' ');
+            } else if (summary.includes('除用餐皆須協助')) {
+                assistChecks = assistKeywords.map(k => k === '用餐' ? `□${k}` : `■${k}`).join(' ');
+            } else {
+                assistChecks = assistKeywords.map(k => `${summary.includes(k) ? '■' : '□'}${k}`).join(' ');
+            }
+            report.push(`二、需他人協助${!isIndependent ? '■' : '□'}全部(${assistChecks})`);
+
+            const noAids = summary.includes('無須輔具');
+            let lifeAidsText = '', medicalAidsText = '';
+            if (!noAids) {
+                const aidMatch = summary.match(/使用([^。|，]+)/);
+                if (aidMatch && aidMatch[1]) {
+                    const aidUsed = aidMatch[1].replace('輔具','').trim();
+                    const lifeAids = ['拐杖', '輪椅', '助行器', '助聽器'], medicalAids = ['呼吸器', '氧氣製造機', '抽痰'];
+                    if (lifeAids.some(la => aidUsed.includes(la))) lifeAidsText = aidUsed;
+                    else if (medicalAids.some(ma => aidUsed.includes(ma))) medicalAidsText = aidUsed;
+                    else lifeAidsText = aidUsed;
+                }
+            }
+            report.push(`三、輔具使用狀況：${noAids ? '■' : '□'}無需求 ${lifeAidsText ? `■生活輔具_${lifeAidsText}` : '□生活輔具__'} ${medicalAidsText ? `■醫療輔具_${medicalAidsText}` : '□醫療輔具__'}`);
+
+            const noNursingNeed = !summary.includes('護理需求');
+            const nursingKeywords = ['鼻胃管', '氣切', '尿管', '褥瘡', '造廔口', '洗腎'];
+            let nursingChecks = nursingKeywords.map(k => `${summary.includes(k) ? '■' : '□'}${k}`).join(' ');
+            let otherNursingText = '';
+            if (!noNursingNeed) {
+                const nursingMatch = summary.match(/有\s(.*?)\s等護理需求/);
+                if (nursingMatch && nursingMatch[1]) {
+                    const customItems = nursingMatch[1].split('、').filter(item => !nursingKeywords.includes(item));
+                    if (customItems.length > 0) otherNursingText = customItems.join(' ');
+                }
+            }
+            report.push(`四、護理需求：${noNursingNeed ? '■' : '□'}無 ${nursingChecks} ${otherNursingText ? `■其他_${otherNursingText}` : '□其他__'}`);
+            
+            report.push('五、自閉/智障/精障障礙者□懷孕中、□育有18歲以下子女，且子女為□身障者');
+            report.push('六、□無提供資訊意願');
+            
+            const schoolKeywords = ['幼兒園', '小學一般班', '小學特教資源班', '國中一般班', '國中特教資源班', '高中', '大學'];
+            let schoolChecks = schoolKeywords.map(k => `${summary.includes(k) ? '■' : '□'}${k}`).join(' ');
+            report.push(`肆、就學狀況：${schoolChecks}，□使用課後照顧`);
+
+            report.push('伍、就業狀況：');
+            const isUnemployed = summary.includes('無業');
+            report.push(`一、${isUnemployed ? '■' : '□'}未就業【□無工作經驗□半年內曾有工作經驗】`);
+            report.push('二、□有就業意願【□提供就業服務資訊□需轉介就業服務】');
+            report.push('三、□無須提供就業服務資訊原因【□無就業意願□無就業能力□可自己找工作□準備考試□其他__】');
+            report.push('四、□無提供資訊意願');
+
+            report.push('陸、長照服務使用狀況：');
+            const ltcNoNeed = summary.includes('長照服務暫無需求');
+            report.push(`一、${ltcNoNeed ? '■' : '□'}無需求 □有需求，自述可自行申請 □有需求，需協助轉介 □申請中`);
+
+            const ltcUsed = summary.includes('已使用長照服務');
+            const ltcKeywords = ['居家服務', '專業服務', '喘息服務', '營養餐飲服務', '日間照顧服務', '交通接送', '居家無障礙環境改善', '家庭托顧'];
+            let ltcChecks = ltcKeywords.map(k => {
+                let isChecked = false;
+                if (ltcUsed) {
+                     isChecked = summary.includes(k) || (k === '居家服務' && (summary.includes('備餐') || summary.includes('陪同外出')));
+                }
+                return `${isChecked ? '■' : '□'}${k}`;
+            }).join(' ');
+            report.push(`二、${ltcUsed ? '■' : '□'}已使用【${ltcChecks}】`);
+            
+            report.push('捌、提供之福利資訊：');
+            const welfareMap = {
+                '一': [ { key: '身障停車位識別證(已確認符合行動便)', value: '身障停車位識別證' }, { key: '復康巴士', value: '復康巴士' }, { key: '必要陪伴者優惠措施', value: '必要陪伴者優惠措施' }, { key: '身障生活補助', value: '身障生活補助' }, { key: '身障房屋租金補貼', value: '身障房屋租金補貼' }, { key: '用電優惠', value: '用電優惠' }, { key: '就醫部分負擔減免', value: '就醫部分負擔減免' }, { key: '低收入戶、中低收入戶申請', value: '低收入戶、中低收入戶申請' }, { key: '發展遲緩兒童療育補助', value: '發展遲緩兒童療育補助' }, { key: '身障鑑定流程', value: '身障鑑定流程' } ],
+                '二': [ { key: '居家服務', value: '居家服務' }, { key: '專業服務(居家復能、營養、照護技巧、護理指導等)', value: '專業服務' }, { key: '喘息服務', value: '喘息服務' }, { key: '營養餐飲服務', value: '營養餐飲服務' }, { key: '日間照顧服務', value: '日間照顧服務' }, { key: '交通接送', value: '交通接送' }, { key: '居家無障礙環境改善', value: '居家無障礙環境改善' }, { key: '家庭托顧', value: '家庭托顧' } ],
+                '三': [ { key: '就業服務', value: '就業服務' }, { key: '輔具服務及補助流程', value: '輔具服務及補助流程' }, { key: '婚姻輔導', value: '婚姻輔導' }, { key: '生育輔導', value: '生育輔導' }, { key: '心理重建', value: '心理重建' }, { key: '行為輔導', value: '行為輔導' }, { key: '課後照顧', value: '課後照顧' } ],
+                '四': [ { key: '生活重建服務', value: '生活重建服務' }, { key: '自立生活支持服務', value: '自立生活支持服務' }, { key: '社區居住', value: '社區居住' }, { key: '社區日間作業設施服務', value: '社區日間作業設施服務' }, { key: '臨時及短期照顧服務', value: '臨時及短期照顧服務' }, { key: '機構式日間照顧服務【□有提供名冊】', value: '機構式日間照顧服務' }, { key: '住宿式照顧服務【□有提供名冊】', value: '住宿式照顧服務' }, { key: '日間及住宿式照顧費用補助', value: '日間及住宿式照顧費用補助' }, { key: '住宿式服務機構使用者補助方案', value: '住宿式服務機構使用者補助方案' } ],
+                '五': [ { key: '身障社區長照機構', value: '身障社區長照機構' }, { key: '精神障礙者會所', value: '精神障礙者會所' }, { key: '外籍看護申請流程及方式', value: '外籍看護申請流程及方式' }, { key: '防走失手鍊', value: '防走失手鍊' }, { key: '緊急救援系統', value: '緊急救援系統' }, { key: '獨老服務', value: '獨老服務' }, { key: '指紋捺印', value: '指紋捺印' }, { key: '身服中心', value: '身服中心' } ]
+            };
+            const generateWelfareLine = (sectionKey) => welfareMap[sectionKey].map(item => {
+                const checkbox = document.querySelector(`.welfare-checkbox[value="${item.value}"]`);
+                return `${checkbox && checkbox.checked ? '■' : '□'}${item.key}`;
+            }).join('');
+            
+            const otherWelfareText = getEl('welfareOtherCheckbox').checked ? getVal('welfareOtherText') : '';
+
+            report.push(`一、${generateWelfareLine('一')}`);
+            report.push(`二、長照服務的${generateWelfareLine('二')}`);
+            report.push(`三、${generateWelfareLine('三')}`);
+            report.push(`四、${generateWelfareLine('四')}`);
+            report.push(`五、${generateWelfareLine('五')}${otherWelfareText ? `■其他_${otherWelfareText}` : '□其他__'}`);
+
+            report.push('玖、未符合優訪指標(高照顧負荷指標、智能障礙及自閉症有嚴重情緒行為)、雙老指標');
+            
+            const hasTwoDisabled = summary.includes('兩名以上身障者');
+            report.push(`拾、${hasTwoDisabled ? '■' : '□'}家中有兩名以上身障者，經評估暫無風險`);
+            
+            report.push(`拾壹、聯繫摘要：${summary}`);
+
+            return report.join('\n\n');
+        }
+
+        // --- 複製功能 ---
+        document.querySelectorAll('.copyBtn').forEach(btn => {
+            btn.addEventListener('click', (event) => {
+                const contentWrapper = event.target.previousElementSibling;
+                navigator.clipboard.writeText(contentWrapper.textContent).then(() => {
+                    const originalText = event.target.textContent;
+                    event.target.textContent = '已複製!';
+                    setTimeout(() => { event.target.textContent = originalText; }, 2000);
+                }).catch(err => console.error('複製失敗:', err));
+            });
+        });
+    });
+    </script>
+</body>
+</html>
+
