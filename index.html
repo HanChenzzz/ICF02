@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>電訪紀錄智慧產生器 (優化版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
+        .form-label { @apply block text-sm font-medium text-slate-700 mb-1.5; }
+        .form-input, .form-select, .form-textarea { @apply w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg shadow-sm placeholder-slate-400 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-slate-400; }
+        .form-textarea:read-only { background-color: #f8fafc; cursor: default; }
+        .btn { @apply px-7 py-3 rounded-lg font-semibold text-white shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-50 transition-all duration-300 ease-in-out transform hover:scale-[1.03]; }
+        .btn-primary { @apply bg-blue-600 hover:bg-blue-700 focus:ring-blue-500; }
+        .btn-secondary { @apply bg-slate-500 hover:bg-slate-600 focus:ring-slate-500 text-xs px-3 py-1; }
+        .btn-success { @apply bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-500 text-xs px-3 py-1; }
+        .btn-warning { @apply bg-amber-500 hover:bg-amber-600 focus:ring-amber-500 text-xs px-3 py-1; }
+        .btn-outline { @apply bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus:ring-blue-500; }
+        .section-title { @apply text-xl font-bold text-slate-800 border-b-2 border-slate-200 pb-4 mb-6 tracking-wide; }
+        .main-card { @apply bg-white rounded-3xl p-8 sm:p-10 relative transition-shadow duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.05)]; }
+        .hidden-section { display: none !important; }
+        .validation-error { @apply text-red-500 text-xs mt-1; }
+        input[type="checkbox"]:disabled + span { @apply text-slate-400; }
+        #historyList li { @apply border-b border-slate-200 p-3 transition-colors hover:bg-slate-50; }
+        #historyList li .summary { @apply text-slate-600 text-sm mt-1 truncate; }
+        
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-area, #print-area * {
+                visibility: visible;
+            }
+            #print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 1rem;
+            }
+            .main-card {
+                box-shadow: none;
+                border: none;
+            }
+            .section-title {
+                margin-top: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+
+    <div id="app-container" class="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8 grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <div class="main-card xl:col-span-2">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">電訪紀錄智慧產生器 (優化版)</h1>
+                <p class="text-slate-500 mt-3 max-w-2xl mx-auto">請透過下方「快速紀錄」選單描述案主狀況，系統將自動生成摘要並回填完整報告。</p>
+            </div>
+
+            <form id="quickInputForm" class="space-y-12">
+                <!-- 基本資訊 -->
+                <section>
+                    <h2 class="section-title">壹、基本資訊</h2>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200/80 grid grid-cols-1 md:grid-cols-1 gap-x-6 gap-y-6">
+                        <div>
+                            <label for="contactPhone" class="form-label font-semibold text-slate-800">聯繫電話</label>
+                            <input type="tel" id="contactPhone" class="form-input mt-1" placeholder="例如：0912-345-678 或 02-1234-5678">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="form-label font-semibold text-slate-800">確認時間</label>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-1">
+                                <div class="p-3 bg-slate-50/70 rounded-lg border">
+                                    <input type="date" id="confirmTime1" class="form-input">
+                                    <input type="text" id="confirmTimeClock1" class="form-input mt-2" placeholder="時間 (例: 14:30)">
+                                </div>
+                                <div class="p-3 bg-slate-50/70 rounded-lg border">
+                                    <input type="date" id="confirmTime2" class="form-input">
+                                    <input type="text" id="confirmTimeClock2" class="form-input mt-2" placeholder="時間 (例: 16:00)">
+                                </div>
+                                <div class="p-3 bg-slate-50/70 rounded-lg border">
+                                    <input type="date" id="confirmTime3" class="form-input">
+                                    <input type="text" id="confirmTimeClock3" class="form-input mt-2" placeholder="時間 (例: 18:30)">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- 快速紀錄區 -->
+                <section>
+                    <h2 class="section-title">貳、快速紀錄</h2>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200/80 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        
+                        <div class="flex items-center space-x-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                            <select id="livingCondition" class="form-select w-auto bg-slate-50 border-0 focus:ring-0">
+                                <option value="案主與">案主與</option>
+                                <option value="案主獨居">案主獨居</option>
+                            </select>
+                            <input type="text" id="livingWith" class="form-input" placeholder="例如:案配偶">
+                            <span class="px-2 text-slate-600 whitespace-nowrap">同住</span>
+                        </div>
+
+                        <div>
+                            <label class="form-label">生活自理狀況</label>
+                             <select id="selfCareStatus" class="form-select">
+                                <option value="生活自理無虞">生活自理無虞</option>
+                                <option value="需他人協助">需他人協助</option>
+                            </select>
+                        </div>
+                        
+                        <div id="assistDetailContainer" class="hidden-section lg:col-span-2">
+                            <label class="form-label">需協助項目</label>
+                            <div id="assistDetailCheckboxes" class="mt-2 p-4 bg-slate-50 rounded-lg grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 text-sm">
+                                <label class="flex items-center space-x-2 font-bold text-blue-600"><input type="checkbox" id="assistAllCheckbox" class="rounded"><span>全部</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="盥洗" class="assist-checkbox rounded"><span>盥洗</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="更衣" class="assist-checkbox rounded"><span>更衣</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="用餐" class="assist-checkbox rounded"><span>用餐</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="備餐" class="assist-checkbox rounded"><span>備餐</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="如廁" class="assist-checkbox rounded"><span>如廁</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="移位" class="assist-checkbox rounded"><span>移位</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="室內移動" class="assist-checkbox rounded"><span>室內移動</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="室外移動" class="assist-checkbox rounded"><span>室外移動</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="安全照顧" class="assist-checkbox rounded"><span>安全照顧</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="家務" class="assist-checkbox rounded"><span>家務</span></label>
+                            </div>
+                        </div>
+
+                        <div>
+                             <label class="form-label">就業/就學狀況</label>
+                             <select id="employmentSchoolStatus" class="form-select">
+                                <option value="無" selected>無</option>
+                                <option value="就業中">就業中</option>
+                                <option value="無業">無業</option>
+                                <option value="就學中">就學中</option>
+                            </select>
+                        </div>
+
+                        <div>
+                             <label class="form-label">輔具使用</label>
+                             <select id="aidsStatus" class="form-select">
+                                <option value="移行無須輔具">移行無須輔具</option>
+                                <option value="移行須使用">移行須使用</option>
+                            </select>
+                        </div>
+
+                        <div id="schoolDetailContainer" class="hidden-section">
+                            <label class="form-label">就學詳情</label>
+                            <select id="schoolDetailSelect" class="form-select">
+                                <option value="幼兒園">幼兒園</option>
+                                <option value="小學一般班">小學一般班</option>
+                                <option value="小學特教資源班">小學特教資源班</option>
+                                <option value="國中一般班">國中一般班</option>
+                                <option value="國中特教資源班">國中特教資源班</option>
+                                <option value="高中">高中</option>
+                                <option value="大學">大學</option>
+                                <option value="custom">其他(自行填寫)</option>
+                            </select>
+                            <input type="text" id="schoolDetailCustom" class="form-input hidden-section mt-2" placeholder="請輸入就學狀況">
+                        </div>
+
+                        <div id="aidsDetailContainer" class="hidden-section">
+                            <label class="form-label">輔具詳情</label>
+                            <select id="aidsDetailSelect" class="form-select">
+                                <option value="拐杖">拐杖</option>
+                                <option value="助行器">助行器</option>
+                                <option value="輪椅">輪椅</option>
+                                <option value="custom">自行填寫</option>
+                            </select>
+                            <input type="text" id="aidsDetailCustom" class="form-input hidden-section mt-2" placeholder="請輸入輔具名稱">
+                        </div>
+                        
+                         <div class="lg:col-span-2">
+                             <label class="form-label">護理需求</label>
+                             <select id="nursingStatus" class="form-select">
+                                <option value="無" selected>無</option>
+                                <option value="有護理需求">有護理需求</option>
+                            </select>
+                            <div id="nursingDetailContainer" class="hidden-section mt-3 p-4 bg-slate-50 rounded-lg flex flex-wrap gap-x-6 gap-y-3 text-sm">
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="鼻胃管" class="nursing-checkbox rounded"><span>鼻胃管</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="氣切" class="nursing-checkbox rounded"><span>氣切</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="尿管" class="nursing-checkbox rounded"><span>尿管</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="褥瘡" class="nursing-checkbox rounded"><span>褥瘡</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="造廔口" class="nursing-checkbox rounded"><span>造廔口</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="洗腎" class="nursing-checkbox rounded"><span>洗腎</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" id="nursingOtherCheckbox" class="rounded"><span>其他</span></label>
+                                <input type="text" id="nursingDetailCustom" class="form-input hidden-section w-auto flex-grow h-10 ml-2" placeholder="請輸入...">
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-2">
+                            <div class="flex items-center mb-1.5">
+                                <label for="ltcStatus" class="form-label mb-0 mr-4">長照使用</label>
+                                <label class="flex items-center space-x-2 text-xs text-slate-600 cursor-pointer">
+                                    <input type="checkbox" id="ltcIncludeInSummary" class="rounded" checked>
+                                    <span>納入摘要</span>
+                                </label>
+                            </div>
+                             <select id="ltcStatus" class="form-select">
+                                <option value="無" selected>無</option>
+                                <option value="長照服務暫無需求">長照服務暫無需求</option>
+                                <option value="已使用長照服務">已使用長照服務</option>
+                            </select>
+                            <div id="ltcDetailContainer" class="hidden-section mt-3 p-4 bg-slate-50 rounded-lg flex flex-wrap gap-x-6 gap-y-3 text-sm">
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="居家服務" class="ltc-checkbox rounded"><span>居家服務</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="專業服務" class="ltc-checkbox rounded"><span>專業服務</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="喘息服務" class="ltc-checkbox rounded"><span>喘息服務</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="營養餐飲服務" class="ltc-checkbox rounded"><span>營養餐飲服務</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="日間照顧服務" class="ltc-checkbox rounded"><span>日間照顧服務</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="交通接送" class="ltc-checkbox rounded"><span>交通接送</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="居家無障礙環境改善" class="ltc-checkbox rounded"><span>居家無障礙環境改善</span></label>
+                                <label class="flex items-center space-x-2"><input type="checkbox" value="家庭托顧" class="ltc-checkbox rounded"><span>家庭托顧</span></label>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="otherSupplementaryText" class="form-label">其他補充事項</label>
+                                <textarea id="otherSupplementaryText" class="form-textarea" rows="2" placeholder="例如：OO為主照，生活自理無虞"></textarea>
+                            </div>
+                            <div class="flex items-center">
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer">
+                                    <input type="checkbox" id="twoDisabledCheckbox" class="rounded">
+                                    <span>家中有兩名以上身障者，經評估暫無風險</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="lg:col-span-2 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                            <label class="form-label font-semibold text-slate-800 mb-3">提供福利資訊</label>
+                            <div id="welfareCheckboxContainer" class="space-y-4 text-sm">
+                                <div><p class="font-medium text-slate-600 mb-2">一、</p><div class="flex flex-wrap gap-x-6 gap-y-2" data-group="1"><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="身障停車位識別證(已確認符合行動不便)"><span>身障停車位識別證</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="復康巴士"><span>復康巴士</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="必要陪伴者優惠措施"><span>必要陪伴者優惠措施</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="身障生活補助"><span>身障生活補助</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="身障房屋租金補貼"><span>身障房屋租金補貼</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="用電優惠"><span>用電優惠</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="就醫部分負擔減免"><span>就醫部分負擔減免</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="購屋貸款利息補貼"><span>購屋貸款利息補貼</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="購買或承租商店攤販低利貸款或租金補貼"><span>商店攤販貸款/租補</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="購買停車位貸款利息補貼"><span>購買停車位貸款利息補貼</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="承租停車位補助"><span>承租停車位補助</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="低收入戶、中低收入戶申請"><span>低收/中低收申請</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="發展遲緩兒童療育補助"><span>發展遲緩兒童療育補助</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="身障鑑定流程"><span>身障鑑定流程</span></label></div></div>
+                                <div><p class="font-medium text-slate-600 mb-2">二、長照服務的</p><div class="flex flex-wrap gap-x-6 gap-y-2" data-group="2"><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="居家服務"><span>居家服務</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="專業服務(居家復能、營養、照護技巧、護理指導等)"><span>專業服務</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="喘息服務"><span>喘息服務</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="營養餐飲服務"><span>營養餐飲服務</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="日間照顧服務"><span>日間照顧服務</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="交通接送"><span>交通接送</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="居家無障礙環境改善"><span>居家無障礙環境改善</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="家庭托顧"><span>家庭托顧</span></label></div></div>
+                                <div><p class="font-medium text-slate-600 mb-2">三、</p><div class="flex flex-wrap gap-x-6 gap-y-2" data-group="3"><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="就業服務"><span>就業服務</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="輔具服務及補助流程"><span>輔具服務及補助流程</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="婚姻輔導"><span>婚姻輔導</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="生育輔導"><span>生育輔導</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="心理重建"><span>心理重建</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="行為輔導"><span>行為輔導</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="課後照顧"><span>課後照顧</span></label></div></div>
+                                <div><p class="font-medium text-slate-600 mb-2">四、</p><div class="flex flex-wrap gap-x-6 gap-y-2" data-group="4"><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="生活重建服務"><span>生活重建服務</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="自立生活支持服務"><span>自立生活支持服務</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="社區式日間照顧服務"><span>社區式日間照顧服務</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="社區居住"><span>社區居住</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="社區日間作業設施服務"><span>社區日間作業設施</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="臨時及短期照顧服務"><span>臨時及短期照顧服務</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="家庭托顧服務"><span>家庭托顧服務</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="機構式日間照顧服務【□有提供名冊】"><span>機構式日間照顧服務</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="住宿式照顧服務【□有提供名冊】"><span>住宿式照顧服務</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="日間及住宿式照顧費用補助"><span>照顧費用補助</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="住宿式服務機構使用者補助方案"><span>機構使用者補助</span></label></div></div>
+                                <div><p class="font-medium text-slate-600 mb-2">五、</p><div class="flex flex-wrap gap-x-6 gap-y-2 items-center" data-group="5"><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="身障社區長照機構"><span>身障社區長照機構</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="精神障礙者會所"><span>精神障礙者會所</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="外籍看護申請流程及方式"><span>外籍看護申請</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="防走失手鍊"><span>防走失手鍊</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="緊急救援系統"><span>緊急救援系統</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="獨老服務"><span>獨老服務</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="指紋捺印"><span>指紋捺印</span></label><label class="flex items-center space-x-2"><input type="checkbox" class="welfare-checkbox rounded" value="身服中心"><span>身服中心</span></label><label class="flex items-center space-x-2"><input type="checkbox" id="welfareOtherCheckbox"><span>其他</span></label><input type="text" id="welfareOtherText" class="form-input hidden-section w-auto flex-grow h-10" placeholder="請輸入..."></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </form>
+
+            <div class="mt-16 flex flex-col sm:flex-row justify-center items-center gap-4">
+                <button id="clearBtn" type="button" class="btn btn-outline w-full sm:w-auto">清除重填</button>
+                <button id="generateBtn" type="button" class="btn btn-primary w-full sm:w-auto">產生報告</button>
+            </div>
+
+            <!-- 輸出區 -->
+            <div id="outputSection" class="mt-16 hidden-section">
+                <div class="flex justify-end mb-4">
+                    <button id="printBtn" class="btn bg-gray-600 hover:bg-gray-700 focus:ring-gray-500 px-4 py-2 text-sm">🖨️ 列印報告</button>
+                </div>
+                <div id="print-area">
+                    <!-- 聯繫摘要輸出 -->
+                    <div class="mb-12">
+                        <h2 class="section-title">拾壹、聯繫摘要</h2>
+                        <div class="mt-4 relative">
+                            <textarea id="summaryOutput" readonly class="form-textarea w-full bg-slate-50 p-6 rounded-lg border border-slate-200 min-h-[100px] text-slate-800 leading-relaxed tracking-wide"></textarea>
+                            <button class="copyBtn btn bg-slate-600 hover:bg-slate-700 absolute top-4 right-4 px-4 py-1.5 text-sm" data-target="summaryOutput">複製</button>
+                        </div>
+                    </div>
+                    <!-- 勾選報告輸出 -->
+                    <div>
+                        <h2 class="section-title">標準格式報告 (自動判讀生成)</h2>
+                        <div class="mt-4 relative">
+                            <textarea id="checkboxReportOutput" readonly class="form-textarea w-full bg-slate-50 p-6 rounded-lg border border-slate-200 min-h-[200px] text-slate-800 leading-relaxed tracking-wide whitespace-pre-wrap font-sans"></textarea>
+                            <button class="copyBtn btn bg-slate-600 hover:bg-slate-700 absolute top-4 right-4 px-4 py-1.5 text-sm" data-target="checkboxReportOutput">複製</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- History Section -->
+        <div class="main-card xl:col-span-1">
+             <div class="flex justify-between items-center mb-6 border-b-2 border-slate-200 pb-4">
+                <h2 class="text-xl font-bold text-slate-800">歷史紀錄</h2>
+                <button id="clearHistoryBtn" class="btn-secondary rounded-md px-3 py-1 text-xs">清除全部</button>
+            </div>
+            <div class="flex space-x-2 mb-4">
+                <button id="exportHistoryBtn" class="btn-success flex-1">匯出紀錄</button>
+                <button id="importHistoryBtn" class="btn-warning flex-1" onclick="document.getElementById('fileInput').click();">匯入紀錄</button>
+                <input type="file" id="fileInput" class="hidden" accept=".json">
+            </div>
+            <ul id="historyList" class="space-y-2 max-h-[1200px] overflow-y-auto">
+                <!-- History items will be injected here -->
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const getEl = (id) => document.getElementById(id);
+        const historyKey = 'reportGeneratorHistory';
+        
+        const getVal = (id) => {
+            const el = getEl(id);
+            return el ? el.value.trim() : '';
+        };
+
+        // --- 設定預設日期為今天 ---
+        const today = new Date();
+        const timezoneOffset = today.getTimezoneOffset() * 60000;
+        const localISOTime = (new Date(today - timezoneOffset)).toISOString().split('T')[0];
+        getEl('confirmTime1').value = localISOTime;
+
+        // --- 動態顯示輸入框 ---
+        const setupConditionalVisibility = (controllerId, targetId, showCondition) => {
+            const controller = getEl(controllerId);
+            const target = getEl(targetId);
+            if (!controller || !target) return;
+            
+            const toggle = () => {
+                let shouldShow = false;
+                if (controller.type === 'checkbox') {
+                    shouldShow = controller.checked;
+                } else { // select
+                    const showValues = Array.isArray(showCondition) ? showCondition : [showCondition];
+                    shouldShow = showValues.includes(controller.value);
+                }
+                
+                target.classList.toggle('hidden-section', !shouldShow);
+            };
+
+            controller.addEventListener('change', toggle);
+            toggle(); // Initial check
+        };
+        
+        const spanId = getEl('livingWith').nextElementSibling.id || (getEl('livingWith').nextElementSibling.id = `span-${Date.now()}`);
+        setupConditionalVisibility('livingCondition', 'livingWith', '案主與');
+        setupConditionalVisibility('livingCondition', spanId, '案主與');
+        setupConditionalVisibility('selfCareStatus', 'assistDetailContainer', '需他人協助');
+        setupConditionalVisibility('employmentSchoolStatus', 'schoolDetailContainer', '就學中');
+        setupConditionalVisibility('schoolDetailSelect', 'schoolDetailCustom', 'custom');
+        setupConditionalVisibility('aidsStatus', 'aidsDetailContainer', '移行須使用');
+        setupConditionalVisibility('aidsDetailSelect', 'aidsDetailCustom', 'custom');
+        setupConditionalVisibility('nursingStatus', 'nursingDetailContainer', '有護理需求');
+        setupConditionalVisibility('nursingOtherCheckbox', 'nursingDetailCustom', true);
+        setupConditionalVisibility('ltcStatus', 'ltcDetailContainer', '已使用長照服務');
+        setupConditionalVisibility('welfareOtherCheckbox', 'welfareOtherText', true);
+
+        // --- Assist Checkbox Logic ---
+        const assistAllCheckbox = getEl('assistAllCheckbox');
+        const assistCheckboxes = document.querySelectorAll('.assist-checkbox');
+
+        assistAllCheckbox.addEventListener('change', () => {
+            const isChecked = assistAllCheckbox.checked;
+            assistCheckboxes.forEach(cb => {
+                if (isChecked) {
+                    cb.checked = false;
+                }
+                cb.disabled = isChecked;
+            });
+        });
+
+        assistCheckboxes.forEach(cb => {
+            cb.addEventListener('change', () => {
+                if (cb.checked) {
+                    assistAllCheckbox.checked = false;
+                    assistCheckboxes.forEach(innerCb => innerCb.disabled = false);
+                }
+            });
+        });
+
+
+        // --- 主要按鈕事件 ---
+        getEl('generateBtn').addEventListener('click', () => {
+            const summaryText = generateSummary();
+            if (summaryText.length <= 1) { 
+                alert('請至少填寫一項主要資訊以產生報告。');
+                return;
+            }
+
+            getEl('summaryOutput').value = summaryText;
+            const checkboxReportText = parseSummaryAndGenerateReport(summaryText);
+            getEl('checkboxReportOutput').value = checkboxReportText;
+            
+            const outputSection = getEl('outputSection');
+            outputSection.classList.remove('hidden-section');
+            outputSection.scrollIntoView({ behavior: 'smooth' });
+
+            saveToHistory(summaryText);
+        });
+
+        getEl('clearBtn').addEventListener('click', () => {
+            if (confirm('您確定要清除所有已填寫的欄位嗎？')) {
+                clearForm();
+            }
+        });
+
+        function clearForm() {
+            getEl('quickInputForm').reset();
+            assistCheckboxes.forEach(cb => cb.disabled = false);
+            getEl('ltcIncludeInSummary').checked = true; // Restore default checked state
+            getEl('quickInputForm').querySelectorAll('select, input[type="checkbox"]').forEach(el => el.dispatchEvent(new Event('change')));
+            getEl('confirmTime1').value = localISOTime;
+            getEl('outputSection').classList.add('hidden-section');
+        }
+
+        // --- 產生聯繫摘要 ---
+        function generateSummary() {
+            let parts = [];
+            
+            let livingText = getVal('livingCondition');
+            parts.push(livingText === '案主與' ? `案主與${getVal('livingWith') || '家人'}同住` : '案主獨居');
+            
+            if (getVal('selfCareStatus') === '生活自理無虞') {
+                parts.push('生活自理無虞');
+            }
+
+            const employmentSchool = getVal('employmentSchoolStatus');
+            if (employmentSchool !== '無') {
+                 if (employmentSchool === '就學中') {
+                    let schoolDetails = getVal('schoolDetailSelect');
+                    if (schoolDetails === 'custom') schoolDetails = getVal('schoolDetailCustom');
+                    parts.push(schoolDetails ? `目前就學中(${schoolDetails})` : '目前就學中');
+                } else {
+                    parts.push(`目前${employmentSchool}`);
+                }
+            }
+            
+            let aidsStatus = getVal('aidsStatus');
+            if (aidsStatus === '移行須使用') {
+                let aidsDetails = getVal('aidsDetailSelect');
+                if (aidsDetails === 'custom') aidsDetails = getVal('aidsDetailCustom');
+                parts.push(aidsDetails ? `移行須使用${aidsDetails}` : '移行須使用輔具');
+            } else {
+                parts.push('移行無須輔具');
+            }
+            
+            if (getVal('nursingStatus') === '有護理需求') {
+                const checkedNeeds = Array.from(document.querySelectorAll('.nursing-checkbox:checked')).map(cb => cb.value);
+                if (getEl('nursingOtherCheckbox').checked) {
+                    const customNeed = getVal('nursingDetailCustom');
+                    if (customNeed) checkedNeeds.push(customNeed);
+                }
+                if (checkedNeeds.length > 0) parts.push(`有 ${checkedNeeds.join('、')} 等護理需求`);
+            }
+            
+            if (getEl('ltcIncludeInSummary').checked) {
+                const ltcStatus = getVal('ltcStatus');
+                if (ltcStatus === '已使用長照服務') {
+                    const checkedServices = Array.from(document.querySelectorAll('.ltc-checkbox:checked')).map(cb => cb.value.replace('服務',''));
+                    if (checkedServices.length > 0) {
+                         parts.push(`已使用長照${checkedServices.join('、')}等服務項目`);
+                    } else {
+                        parts.push('已使用長照服務');
+                    }
+                } else if (ltcStatus === '無') {
+                    parts.push('無使用長照服務');
+                } else { 
+                    parts.push(ltcStatus);
+                }
+            }
+            
+            if(getEl('twoDisabledCheckbox').checked) parts.push('家中有兩名以上身障者，經評估暫無風險');
+            if (getVal('otherSupplementaryText')) parts.push(getVal('otherSupplementaryText'));
+
+            return parts.filter(Boolean).join('，') + '。';
+        }
+
+        // --- 核心：解析摘要並產生報告 ---
+        function parseSummaryAndGenerateReport(summary) {
+            let report = [];
+            
+            const times = [];
+            for (let i = 1; i <= 3; i++) {
+                const dateVal = getVal(`confirmTime${i}`);
+                const clockVal = getVal(`confirmTimeClock${i}`);
+                if (dateVal) {
+                    try {
+                        const date = new Date(dateVal);
+                        const rocYear = date.getFullYear() - 1911;
+                        const month = date.getMonth() + 1;
+                        const day = date.getDate();
+                        const formattedDate = `${rocYear}/${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
+                        times.push(`${formattedDate} ${clockVal}`.trim());
+                    } catch (e) {
+                         times.push(`${dateVal} ${clockVal}`.trim());
+                    }
+                } else if (clockVal) {
+                    times.push(clockVal);
+                }
+            }
+            report.push(`壹、確認時間：${times.join('、')}`);
+            report.push(`貳、聯繫電話：${getVal('contactPhone')}`);
+            report.push('參、生活狀況：');
+
+            const isIndependent = getVal('selfCareStatus') === '生活自理無虞';
+            report.push(`一、${isIndependent ? '■' : '□'}具生活自理能力`);
+            
+            const assistKeywords = ['盥洗','更衣','用餐','備餐','如廁','移位','室內移動','室外移動','安全照顧','家務'];
+            let assistChecks = '';
+            const assistAllChecked = getEl('assistAllCheckbox').checked;
+            
+            if (!isIndependent) {
+                if (assistAllChecked) {
+                    assistChecks = assistKeywords.map(k => `□${k}`).join(' ');
+                } else {
+                    assistChecks = assistKeywords.map(k => {
+                        const cb = document.querySelector(`.assist-checkbox[value="${k}"]`);
+                        return `${cb && cb.checked ? '■' : '□'}${k}`;
+                    }).join(' ');
+                }
+            } else {
+                assistChecks = assistKeywords.map(k => `□${k}`).join(' ');
+            }
+            report.push(`二、${!isIndependent ? '■' : '□'}需他人協助 ${!isIndependent && assistAllChecked ? '■' : '□'}全部(${assistChecks})`);
+
+            const noAids = getVal('aidsStatus') === '移行無須輔具';
+            let lifeAidsText = '', medicalAidsText = '';
+            if (!noAids) {
+                let aidsDetails = getVal('aidsDetailSelect');
+                if(aidsDetails === 'custom') aidsDetails = getVal('aidsDetailCustom');
+                lifeAidsText = aidsDetails;
+            }
+            report.push(`三、輔具使用狀況：${noAids ? '■' : '□'}無需求 ${lifeAidsText ? `■生活輔具_${lifeAidsText}` : '□生活輔具__'} ${medicalAidsText ? `■醫療輔具_${medicalAidsText}` : '□醫療輔具__'}`);
+
+            const noNursingNeed = getVal('nursingStatus') === '無';
+            const nursingKeywords = ['鼻胃管', '氣切', '尿管', '褥瘡', '造廔口', '洗腎'];
+            let nursingChecks = nursingKeywords.map(k => {
+                 const cb = document.querySelector(`.nursing-checkbox[value="${k}"]`);
+                 return `${!noNursingNeed && cb && cb.checked ? '■' : '□'}${k}`;
+            }).join(' ');
+            let otherNursingText = (!noNursingNeed && getEl('nursingOtherCheckbox').checked) ? getVal('nursingDetailCustom') : '';
+            report.push(`四、護理需求：${noNursingNeed ? '■' : '□'}無 ${nursingChecks} ${otherNursingText ? `■其他_${otherNursingText}` : '□其他__'}`);
+            
+            report.push('五、自閉/智障/精障障礙者□懷孕中、□育有18歲以下子女，且子女為□身障者');
+            report.push('六、□無提供資訊意願');
+            
+            const schoolKeywords = ['幼兒園', '小學一般班', '小學特教資源班', '國中一般班', '國中特教資源班', '高中', '大學'];
+            let schoolChecks = schoolKeywords.map(k => `${summary.includes(k) ? '■' : '□'}${k}`).join(' ');
+            report.push(`肆、就學狀況：${schoolChecks}，□使用課後照顧`);
+
+            report.push('伍、就業狀況：');
+            const isUnemployed = summary.includes('無業');
+            report.push(`一、${isUnemployed ? '■' : '□'}未就業【□無工作經驗□半年內曾有工作經驗】`);
+            report.push('二、□有就業意願【□提供就業服務資訊□需轉介就業服務】');
+            report.push('三、□無須提供就業服務資訊原因【□無就業意願□無就業能力□可自己找工作□準備考試□其他__】');
+            report.push('四、□無提供資訊意願');
+
+            report.push('陸、長照服務使用狀況：');
+            const ltcStatusValue = getVal('ltcStatus');
+            const ltcNoNeed = ltcStatusValue !== '已使用長照服務';
+            report.push(`一、${ltcNoNeed ? '■' : '□'}無需求 □有需求，自述可自行申請 □有需求，需協助轉介 □申請中`);
+
+            const ltcUsed = ltcStatusValue === '已使用長照服務';
+            const ltcKeywords = ['居家服務', '專業服務', '喘息服務', '營養餐飲服務', '日間照顧服務', '交通接送', '居家無障礙環境改善', '家庭托顧'];
+            let ltcChecks = ltcKeywords.map(k => {
+                const checkbox = document.querySelector(`.ltc-checkbox[value="${k}"]`);
+                return `${ltcUsed && checkbox && checkbox.checked ? '■' : '□'}${k}`;
+            }).join(' ');
+            report.push(`二、${ltcUsed ? '■' : '□'}已使用【${ltcChecks}】`);
+            
+            report.push('捌、提供之福利資訊：');
+            const welfareContainer = getEl('welfareCheckboxContainer');
+            for(let i = 1; i <= 5; i++) {
+                const group = welfareContainer.querySelector(`[data-group="${i}"]`);
+                if(group){
+                    let line = Array.from(group.querySelectorAll('.welfare-checkbox')).map(cb => {
+                        return `${cb.checked ? '■' : '□'}${cb.value}`;
+                    }).join('');
+
+                    let prefix = ['', '一、', '二、長照服務的', '三、', '四、', '五、'][i];
+                    
+                    if (i === 5) {
+                       const otherChecked = getEl('welfareOtherCheckbox').checked;
+                       const otherText = getVal('welfareOtherText');
+                       line += otherChecked && otherText ? `■其他_${otherText}` : '□其他__';
+                    }
+                    report.push(`${prefix}${line}`);
+                }
+            }
+
+            report.push('玖、未符合優訪指標(高照顧負荷指標、智能障礙及自閉症有嚴重情緒行為)、雙老指標');
+            const hasTwoDisabled = getEl('twoDisabledCheckbox').checked;
+            report.push(`拾、${hasTwoDisabled ? '■' : '□'}家中有兩名以上身障者，經評估暫無風險`);
+            report.push(`拾壹、聯繫摘要：${summary}`);
+
+            return report.join('\n');
+        }
+        
+        // --- History Functions ---
+        function saveToHistory(summary) {
+            let history = JSON.parse(localStorage.getItem(historyKey)) || [];
+            const timestamp = new Date().toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+            const currentState = { timestamp, summary, data: captureFormState() };
+            history.unshift(currentState);
+            if (history.length > 50) history.pop();
+            localStorage.setItem(historyKey, JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const historyList = getEl('historyList');
+            historyList.innerHTML = '';
+            const history = JSON.parse(localStorage.getItem(historyKey)) || [];
+            if (history.length === 0) {
+                historyList.innerHTML = '<li class="text-slate-400 text-center text-sm py-4">尚無歷史紀錄</li>';
+                return;
+            }
+            history.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div class="flex-grow mr-2 cursor-pointer restore-trigger" data-index="${index}">
+                            <div class="font-semibold text-slate-700 text-sm">${item.timestamp}</div>
+                            <p class="summary">${item.summary}</p>
+                        </div>
+                        <button class="btn-secondary restore-btn flex-shrink-0" data-index="${index}">載入</button>
+                    </div>`;
+                historyList.appendChild(li);
+            });
+        }
+
+        function captureFormState() {
+            const state = {};
+            document.querySelectorAll('#quickInputForm input, #quickInputForm select, #quickInputForm textarea').forEach(el => {
+                if (el.id) state[el.id] = (el.type === 'checkbox' || el.type === 'radio') ? el.checked : el.value;
+            });
+            return state;
+        }
+
+        function restoreFormState(data) {
+            clearForm();
+            for (const id in data) {
+                const el = getEl(id);
+                if (el) {
+                    if (el.type === 'checkbox' || el.type === 'radio') {
+                        el.checked = data[id];
+                    } else {
+                        el.value = data[id];
+                    }
+                    el.dispatchEvent(new Event('change'));
+                }
+            }
+        }
+
+        getEl('historyList').addEventListener('click', (e) => {
+            const target = e.target.closest('.restore-btn, .restore-trigger');
+            if (target) {
+                const index = target.dataset.index;
+                const history = JSON.parse(localStorage.getItem(historyKey)) || [];
+                if (history[index]) {
+                    restoreFormState(history[index].data);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            }
+        });
+        
+        getEl('clearHistoryBtn').addEventListener('click', () => {
+             if (confirm('您確定要清除所有歷史紀錄嗎？此操作無法復原。')) {
+                 localStorage.removeItem(historyKey);
+                 renderHistory();
+            }
+        });
+        
+        renderHistory();
+
+        // --- 匯出/匯入/列印/複製 功能 ---
+        getEl('exportHistoryBtn').addEventListener('click', () => {
+            const history = localStorage.getItem(historyKey);
+            if (!history || history === '[]') {
+                alert('沒有歷史紀錄可匯出。');
+                return;
+            }
+            const blob = new Blob([history], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const now = new Date();
+            const timestamp = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}`;
+            a.download = `report_history_${timestamp}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        getEl('fileInput').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedHistory = JSON.parse(e.target.result);
+                    if (Array.isArray(importedHistory) && importedHistory.every(item => 'timestamp' in item && 'data' in item)) {
+                         if (confirm('匯入將會覆蓋目前的歷史紀錄，確定要繼續嗎？')) {
+                            localStorage.setItem(historyKey, JSON.stringify(importedHistory));
+                            renderHistory();
+                            alert('歷史紀錄已成功匯入！');
+                        }
+                    } else {
+                        throw new Error('Invalid format');
+                    }
+                } catch (error) {
+                    alert('匯入失敗：檔案格式不正確或已損毀。');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        });
+
+        getEl('printBtn').addEventListener('click', () => window.print());
+
+        document.querySelectorAll('.copyBtn').forEach(btn => {
+            btn.addEventListener('click', (event) => {
+                const targetId = event.target.dataset.target;
+                const contentWrapper = getEl(targetId);
+                
+                try {
+                    contentWrapper.select();
+                    contentWrapper.setSelectionRange(0, 99999); // For mobile devices
+
+                    const successful = document.execCommand('copy');
+
+                    if (successful) {
+                        const originalText = event.target.textContent;
+                        event.target.textContent = '已複製 ✅';
+                        event.target.classList.add('bg-green-600', 'hover:bg-green-700');
+                        setTimeout(() => {
+                            event.target.textContent = originalText;
+                            event.target.classList.remove('bg-green-600', 'hover:bg-green-700');
+                        }, 2000);
+                    } else {
+                         throw new Error('Copy command was not successful');
+                    }
+                } catch (err) {
+                    console.error('複製失敗:', err);
+                    alert('複製失敗，您的瀏覽器可能不支援此功能。');
+                } finally {
+                     window.getSelection().removeAllRanges();
+                }
+            });
+        });
+    });
+    </script>
+</body>
+</html>
+
